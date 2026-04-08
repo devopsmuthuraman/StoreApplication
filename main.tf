@@ -93,57 +93,9 @@ resource "aws_instance" "ec2" {
   associate_public_ip_address = true
   vpc_security_group_ids = [aws_security_group.sg.id]
 
-  user_data = <<-EOF
-    
-  #!/bin/bash
-
-  set -e
-
-  echo "Updating system..."
-  sudo apt update -y
-
-  echo "Installing Java (Jenkins dependency)..."
-  sudo apt install -y openjdk-17-jdk
-
-  echo "Adding Jenkins repository key..."
-  curl -fsSL https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key | sudo tee \
-  /usr/share/keyrings/jenkins-keyring.asc > /dev/null
-
-  echo "Adding Jenkins repository..."
-  echo deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] \
-  https://pkg.jenkins.io/debian-stable binary/ | sudo tee \
-  /etc/apt/sources.list.d/jenkins.list > /dev/null
-
-  echo "Updating package list..."
-  sudo apt update -y
-
-  echo "Installing Jenkins..."
-  sudo apt install -y jenkins
-
-  echo "Starting Jenkins service..."
-  sudo systemctl start jenkins
-  sudo systemctl enable jenkins
-
-  echo "Opening firewall port 8080..."
-  sudo ufw allow 8080 || true
-
-  echo "Jenkins installed successfully!"
-
-  curl -LO "https://dl.k8s.io/release/$(curl -L -s https://dl.k8s.io/release/stable.txt)/bin/linux/amd64/kubectl"
-
-  chmod +x kubectl
-  mv kubectl /usr/local/bin/
-
-  sudo apt install -y firewalld
-  systemctl start firewalld
-  systemctl enable firewalld
-  firewall-cmd --permanent --add-port=8080/tcp
-  firewall-cmd --reload
-
-  echo "Setup complete"
-  EOF
-
-    tags = {
-    Name = "jenkins-server"
+  tags = {
+  Name = "Jenkins-Terra_server"
   }
+
+
 }
