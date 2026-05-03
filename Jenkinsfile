@@ -5,16 +5,17 @@ pipeline {
         IMAGE_NAME = "terraform_jenkinserver/nodeapp"
         TAG = "latest"
         DOCKERHUB_REPO = "mubha/terraform_jenkinserver"
-        KUBECONFIG = "/home/ec2-user/.kube/config"
-        
-        AWS_REGION = 'ap-south-1'
-        CLUSTER_NAME = 'my-eks-cluster'
+
+        AWS_REGION = "ap-south-1"
+        CLUSTER_NAME = "my-eks-cluster"
     }
 
     stages {
+
         stage('Git Clone') {
             steps {
-                git branch: 'main', url: 'https://github.com/devopsmuthuraman/StoreApplication.git'
+                git branch: 'main',
+                url: 'https://github.com/devopsmuthuraman/StoreApplication.git'
             }
         }
 
@@ -33,41 +34,45 @@ pipeline {
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    script {
-                        sh """
-                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
-                            docker tag ${IMAGE_NAME}:${TAG} ${DOCKERHUB_REPO}:${TAG}
-                            docker push ${DOCKERHUB_REPO}:${TAG}
-                        """
-                    }
+                    sh """
+                        echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                        docker tag ${IMAGE_NAME}:${TAG} ${DOCKERHUB_REPO}:${TAG}
+                        docker push ${DOCKERHUB_REPO}:${TAG}
+                    """
                 }
             }
         }
+
         stage('Deploy to EKS') {
             steps {
-                script {
-                    // Configure kubeconfig for EKS
+                withCredentials([[
+                    $class: 'AmazonWebServicesCredentialsBinding',
+                    credentialsId: 'aws-creds'
+                ]]) {
+
                     sh """
+                        set -e
+
+                        aws sts get-caller-identity
+
                         aws eks update-kubeconfig \
-                        --region $AWS_REGION \
-                        --name $CLUSTER_NAME
-                    """
+                            --region ${AWS_REGION} \
+                            --name ${CLUSTER_NAME}
 
-                    // Deploy using kubectl
-                    sh """
+                        kubectl get ns
+
+                        kubectl apply -f deployment.yml
+                        kubectl apply -f service.yml
+
                         kubectl set image deployment/nodeapp \
-                        my-container=$IMAGE --record
-                    """
+                            my-container=${DOCKERHUB_REPO}:${TAG}
 
-                    // Optional: verify rollout
-                    sh """
                         kubectl rollout status deployment/nodeapp
                     """
                 }
             }
         }
     }
-}
 
     post {
         always {
@@ -76,3 +81,4 @@ pipeline {
             sh "docker rmi ${DOCKERHUB_REPO}:${TAG} || true"
         }
     }
+}
