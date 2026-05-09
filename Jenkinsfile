@@ -7,7 +7,7 @@ pipeline {
         DOCKERHUB_REPO = "mubha/terraform_jenkinserver"
 
         AWS_REGION = "ap-south-1"
-        CLUSTER_NAME = "my-eks-cluster"
+        CLUSTER_NAME = "Trends-cluster"
     }
 
     stages {
